@@ -1,0 +1,14 @@
+/* so datatable can scroll */
+.scr {
+    width: 100%; ! fill up whole width
+    height: 100%;
+    overflow: scroll;
+}
+
+body {
+    font: 90%/1.45em "Helvetica Neue", HelveticaNeue, Verdana, Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    background-color: #fff;
+}
