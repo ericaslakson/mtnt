@@ -1,0 +1,12 @@
+To create a linux installation executable:  (needs work xxxera)
+
+1. clean the linux_python directory by executing:
+
+$ ./linux_python/prepare_for_release.sh
+
+2. others here to create installation rpm or deb
+
+6. Finally move the deb or rpm into the Output_linux directory
+
+7. move the Output_linux folder into the app folder so that when it is zipped separately from the mtnt folder it will contain the latest release files in app.
+
