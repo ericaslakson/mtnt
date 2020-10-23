@@ -1,0 +1,23 @@
+This directory contains a main script 'build_local_hivtrace.sh' which installs python and all packages required to run hivtrace into a standalone installation inside this (linux_python) directory.  
+
+The reason to create a local/standalone installation is to avoid configuration problems in a system python installation.  Since a normal user may want to update libraries upon which hivtrace depends in their system python installation and all library configurations may not be tested, this strategy will hopefully make the entire application more robust.
+
+In order to create the local installation of hivtrace, position a command shell to this subdirectory and build via:
+
+./prepare_for_release.sh
+
+This removes files from the last build, cleaning the directory and test scripts.Note that there are scripts written inside app directory as well as linux_python.
+
+Next execute a shell script to build everything:
+
+./build_local_hivtrace.sh
+
+The installation will ask for root password in order to install core linux build packages if they are not installed.  
+
+Also in this direcory is a script 'make_scripts.sh' which creates test scripts (inside the app subdir) to test and run hivtrace.  These files are automatically created via the main 'build_local_hivtrace.sh' however.
+
+After building hivtrace locally, remember to copy (a slightly altered) hivtrace.py into the local python hivtrace directory.  You may use the script 'overlay_altered_hivtrace_py.sh' for this purpose.  Update: this step is already done via an alteration of the hivtrace installation package.
+
+This script has been developed and tested in Ubuntu 12.04.  If you want to run in centos, redhat, debian, later versions of ubuntu, or other linux version, install all core linux build packages which you would otherwise use to build hivtrace following instructions at https://github.com/veg/hivtrace.  Then run build_local_hivtrace without the apt-get, yum, or other updates at the start of build_local_hivtrace.sh.
+
+era 07/26/16

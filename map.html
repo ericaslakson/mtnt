@@ -1,0 +1,345 @@
+<html lang=en>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
+        <title>Netview HIV Map</title>
+
+        <meta name="description" content="">
+        <meta name="author" content="ERA">
+        <link rel="icon" href="../icons/image16.ico">
+
+        <!-- Vendor: Bootstrap Stylesheets http://getbootstrap.com -->
+        <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
+
+        <style>
+            html,
+            body {
+               height: 100%;
+               width: 100%;
+               margin: 0px;
+               padding: 0px
+            }
+        </style>
+
+        <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+            <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+        <!-- Vendor: Javascripts -->
+        <script src="node_modules/jquery/dist/jquery.min.js"></script>
+        <script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+        <script src="https://maps.googleapis.com/maps/api/js?v=3&amp;sensor=false&amp;key=AIzaSyCHtnsqDXTMNg1_4A0-uvxQcNwqwZctA90"></script>
+        <script src="js/keydragzoom.js"></script>
+    </head>
+    <body>
+        <h3 class="text-center">Netview HIV Map</h3>
+        <div class="block halfrect col-md-12" style="height:90%">
+            <div id="map" style="height:100%;"></div>
+        </div>
+        <script>
+            "use strict";
+            var parent;
+            // this data from network.js which in turn gets it from files.js
+            var network_node_csv_data;
+            var node_csv_data_header;
+
+            function haveParent(theParent, param_network_node_csv_data, param_node_csv_data_header) {
+                parent = theParent;
+                network_node_csv_data = param_network_node_csv_data;
+                node_csv_data_header = param_node_csv_data_header;
+
+                if(!(typeof google === 'object' && typeof google.maps === 'object')) return false;
+                // construct the page contents now that network_node_csv_data can now be accessed
+                initialize();
+                return true;
+            }
+
+            var map;
+            var markers = [];  // this contains the markers set at map creation time
+            var marker_names = []; // this contains the names of all the plotted markers - used for highlighting / parallel array to markers
+            var marker;
+            var selected_marker_names = []; // this contains the names of all markers that are currently selected 
+            var node_loc_data = [];
+            var ctrldown = false;
+
+            // this funcion highlights markers according to selection activities in either spreadsheet or network
+            // IDs are the node names (unique by design)
+            function handle_id_select(event, IDs ) {
+                // console.log("in map handle_id_select event.target.className: " + event.target.className);
+                if(event.target.className !== "map") {
+                    // console.log("about to do a map.highlight_marker off handle_id_select called from EventBus with IDs: " + IDs);
+                    var selMarker;
+                    var marker_match_idx;
+                    var allInViewport = true;
+                    for(var i = 0; i < IDs.length; i++) {
+                        marker_match_idx = marker_names.indexOf(IDs[i]);
+                        // console.log("IDs[i] = " + IDs[i] + " and marker_match_idx = " + marker_match_idx + " and name is: " + marker_names[marker_match_idx] );
+                        if( marker_match_idx !== -1 ) {
+                            highlight_marker(marker_match_idx);
+                            if( !map.getBounds().contains(markers[marker_match_idx].getPosition()) ) {
+                                allInViewport = false;
+                            }
+                        }
+                    }
+                    if( !allInViewport ) {
+                        // bring all selected markers into view
+                        var bounds = new google.maps.LatLngBounds();
+                        for (var i = 0; i < selected_marker_names.length; i++) {
+                            marker_match_idx = marker_names.indexOf(selected_marker_names[i]);
+                            if( marker_match_idx !== -1 ) {
+                                bounds.extend(markers[marker_match_idx].getPosition());
+                            } else {
+                                console.log("logical error in map");
+                            }
+                        }
+                        map.fitBounds(bounds);
+                    }
+                }
+            }
+
+            // this funcion highlights markers according to deselection activities in either spreadsheet or network
+            // IDs are unique names by design
+            function handle_id_deselect(event, IDs ) {
+                // console.log("in map handle_id_deselect event.target.className: " + event.target.className);
+                if(event.target.className !== "map") {
+                    // console.log("about to do a map.unhighlight_marker off handle_id_deselect called from EventBus with IDs: " + IDs);
+                    var selMarker;
+                    var marker_match_idx;
+                    for(var i = 0; i < IDs.length; i++) {
+                        marker_match_idx = marker_names.indexOf(IDs[i]);                   
+                        if( marker_match_idx !== -1 ) {
+                            unhighlight_marker(marker_match_idx);
+                        }
+                    }
+                }
+            }
+
+            // this function highlights a marker with name marker_names[i]
+            function highlight_marker(i) {
+                //console.log("map marker: " + i + " has been highlighted");
+                selected_marker_names.push(marker_names[i]);
+                markers[i].setIcon(highlightedIcon());
+            }
+
+            // this function unhighlights a marker with name marker_names[i]
+            function unhighlight_marker(i) {
+                var sel_index = selected_marker_names.indexOf(marker_names[i]);
+                if(sel_index != -1) {
+                    selected_marker_names.splice(sel_index,1);
+                    markers[i].setIcon(normalIcon());
+                }
+            }
+
+            // functions that return icons.  
+            function normalIcon() {
+                return {
+                    url: 'http://maps.gstatic.com/mapfiles/markers2/icon_green.png'
+                };
+            }
+
+            function highlightedIcon() {
+                return {
+                    url: 'http://maps.gstatic.com/mapfiles/markers2/marker.png'
+                };
+            }
+
+            // http://stackoverflow.com/questions/32928684/google-maps-height-100-of-div-parent
+            // http://salman-w.blogspot.com/2011/03/zoom-to-fit-all-markers-on-google-map.html
+            function initialize() {
+                // Display all the csv locs that exist on the network, and get them all now.
+                // The source of all nodes that are output from hivtrace and displayed in the csv datagrid
+                // is network_node_csv_data and node_csv_data_header
+
+                // example format
+                //var node_loc_data = [
+                //    {
+                //        name: "Eden Gardens, India",
+                //        latlng: new google.maps.LatLng(22.564444, 88.343333)
+                //    },
+                //    {
+                //        name: "Feroz Shah Kotla, India",
+                //        latlng: new google.maps.LatLng(28.637778, 77.243056)
+                //    }
+                //];
+
+                var lat_index = -1;
+                var lng_index = -1;
+                // note the first column of the node csv file is the id
+                var id_index = 0;
+
+                if(node_csv_data_header != undefined) {
+                    var lat_index = node_csv_data_header.indexOf("lat");
+                    var lng_index = node_csv_data_header.indexOf("lon");
+                }
+
+                // The following commented code now done in views/network to disable to map checkbox.
+                // check to make sure we have both latitude and longitude
+                //if( (lat_index == -1) || (lng_index == -1) ) {
+                //    // Need both lat and lon, so plot blank map centered on Ellsworth, Kansas.
+                //    console.log("lat or lon column headers not found.  Skipping marked map.");
+                //    console.log("lat_index, lng_index: " + lat_index + ", " + lng_index);
+                //    map = new google.maps.Map(
+                //        document.getElementById("map"), {
+                //            center: new google.maps.LatLng(38.731538,-98.2275423),
+                //            zoom: 8,
+                //            mapTypeId: google.maps.MapTypeId.ROADMAP
+                //    });
+                //} else {
+                if (true) {
+
+                    var lat;
+                    var lng;
+                    var ID;
+                    var badRow = [];
+                    for(var i = 0; i < network_node_csv_data.length; i++) {
+                        lat = getLat(network_node_csv_data[i][lat_index]);
+                        lng = getLng(network_node_csv_data[i][lng_index]);
+                        ID = network_node_csv_data[i][id_index];
+                        if( (lat !== -91) && (lng !== -181) ) {
+                            node_loc_data.push( { "name": ID,
+                                "latlng": new google.maps.LatLng(lat,lng) } );
+                        } else {
+                            badRow.push(i);
+                        }
+                    }
+
+                    map = new google.maps.Map(
+                        document.getElementById("map"), {
+                            center: new google.maps.LatLng(0.0,0.0),
+                            zoom: 0,
+                            mapTypeId: google.maps.MapTypeId.ROADMAP
+                    });
+
+                    map.enableKeyDragZoom({
+                        key: "shift", 
+                        boxStyle: {
+                            border: "4px dashed black",
+                            //backgroundColor: "transparent",
+                            backgroundColor: "green",
+                            //opacity: 1.0
+                            opacity: 0.2  // this matches opacity of swipe select in network.html
+                        },
+                        veilStyle: {
+                            //backgroundColor: "red",
+                            backgroundColor: "transparent",
+                            //opacity: 0.35,
+                            opacity: 1.0,
+                            cursor: "crosshair"
+                        }
+                    });
+
+                    // click on non-marker deselects all selections
+                    google.maps.event.addListener(map, 'click', function(event) {
+                        if(selected_marker_names.length > 0) {
+                            parent.window.map_win.window.className = "map";
+                            // console.log("about to dispatch event from map multiselect");
+                            parent.window.EventBus.dispatch('deselect',parent.window.map_win.window,selected_marker_names);
+                            clearSelectedNodes();
+                        }
+                    });
+
+                    // get control key status
+                    $(window).keydown(function(evtobj) {
+                        if(evtobj.ctrlKey) { 
+                           ctrldown = true;
+                        } 
+                        $(window).one("keyup",function(evtobj) {
+                            ctrldown = false;
+                        });
+                    });
+
+                    for (var i = 0; i < node_loc_data.length; i++) {
+                        marker = new google.maps.Marker({
+                                position: node_loc_data[i].latlng,
+                                map: map,
+                                icon: normalIcon(),
+                                title: node_loc_data[i].name
+                            });
+                        markers.push(marker);
+                        marker_names.push(node_loc_data[i].name);
+                        google.maps.event.addListener(marker, 'click', function() {
+                            var nodeName = this.title;
+                            var sel_index = selected_marker_names.indexOf(nodeName);
+                            if(sel_index == -1) { // node not already selected
+                                if(!ctrldown) { // since the default behaviour on the network is to clear selected nodes upon new select without shift...
+                                    clearSelectedNodes();
+                                }
+                                selected_marker_names.push(nodeName);
+                                this.setIcon(highlightedIcon());
+                                var temp = [];
+                                temp.push(nodeName);
+                                parent.window.map_win.window.className = "map";
+                                //console.log("about to dispatch event from map select");
+                                parent.window.EventBus.dispatch('select',parent.window.map_win.window,temp);
+                            } else { // node was already selected
+                                if(ctrldown) { // since the default behaviour on the network is to clear previously selected nodes only with shift...
+                                    selected_marker_names.splice(sel_index,1);
+                                    this.setIcon(normalIcon());
+                                    var temp = [];
+                                    temp.push(nodeName);
+                                    parent.window.map_win.window.className = "map";
+                                    //console.log("about to dispatch event from map deselect");
+                                    parent.window.EventBus.dispatch('deselect',parent.window.map_win.window,temp);
+                                }
+                            }
+                        });
+                    }
+
+                    var latlngbounds = new google.maps.LatLngBounds();
+                    for (var i = 0; i < node_loc_data.length; i++) {
+                        latlngbounds.extend(node_loc_data[i].latlng);
+                    }
+                    map.fitBounds(latlngbounds);
+                    if(badRow.length > 0) {
+                        var skipped_rows = "";
+                        for(var q = 0; q < badRow.length; q++)
+                            skipped_rows = skipped_rows + " " + badRow[q];
+                        BootstrapDialog.show({ title: 'CSV Latitute Longitude Value Warning', message: 'The CSV file contains rows with invalid latitute longitude values.  Latitude values should be from -90 to 90. Longitude values should be from -180 to 180. Rows with invalid values will not be displayed on the map.\nSkipping rows: ' + skipped_rows, draggable: true, type: BootstrapDialog.TYPE_INFO
+                        });
+                    }
+                }
+
+            } // end initialize fn
+            //google.maps.event.addDomListener(window, "load", initialize);  call from haveParent instead
+
+            // check the value from the csv cell, if error then return -91
+            function getLat(n) {
+                if( (!n || /^\s*$/.test(n)) ||
+                    (n === null && typeof n === "object") ||
+                    (n === "" && typeof n === "string") ||
+                    (n === undefined && typeof n === "undefined") ||
+                    (Number(n) === NaN) ||
+                    (Math.abs(Number(n)) > 90) ) 
+                    return -91;
+                else
+                    return Number(n);
+            }
+
+            // check the value from the csv cell, if error then return -181
+            function getLng(n) {
+                if( (!n || /^\s*$/.test(n)) ||
+                    (n === null && typeof n === "object") ||
+                    (n === "" && typeof n === "string") ||
+                    (n === undefined && typeof n === "undefined") ||
+                    (Number(n) === NaN) ||
+                    (Math.abs(Number(n)) > 180) ) 
+                    return -181;
+                else
+                    return Number(n);
+            }
+
+            function clearSelectedNodes() {
+                for(var i=0; i < markers.length; i++) {
+                   markers[i].setIcon(normalIcon()); 
+                }
+                selected_marker_names.length = 0;
+            }
+
+        </script>
+    </body>
+</html>

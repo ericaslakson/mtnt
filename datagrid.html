@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
+    <title>Netview HIV Datagrid</title>
+
+    <meta name="description" content="">
+    <meta name="author" content="ERA">
+    <link rel="icon" href="icons/image16.png">
+
+    <!-- Vendor: Bootstrap Stylesheets http://getbootstrap.com -->
+    <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
+
+    <link href="../datatables/datatables.min.css" rel="stylesheet" type="text/css" />
+
+    <!-- Netview HIV CSS Styles -->
+    <link href="../css/datagrid.css" rel="stylesheet" type="text/css" />
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- Vendor: Javascripts -->
+    <script src="../node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="../node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+
+    <!-- datatables -->
+    <script type="text/javascript" src="../datatables/datatables.js"></script>
+
+   <!-- jquery_ui_bootstrap - this needed for jquery-doubleScroll -->
+   <script type='text/javascript' src="../jquery-ui-bootstrap/jquery-ui-1.9.2.custom.min.js"></script>
+
+    <!-- double scroll -->
+    <script type='text/javascript' src="../jQuery-doubleScroll-master/jquery.doubleScroll.js"></script>
+
+  </head>
+  <body>
+
+      <div class="col-md-12 center">
+          <!-- <div class="container-fluid scr" > -->
+          <div class="container-fluid" >
+              Font-size: <input type="range" id="font-size-slider" min="0.5" value="1" max="10" step="0.1">
+              <!-- <table id="example" class="display" width="100%" border=true ></table> -->
+              <table id="example" class="display compact table table-striped table-bordered" cellspacing="0" width="100%" ></table>
+          </div>
+      </div>
+
+      <script type="text/javascript">
+        "use strict";
+
+        // https://datatables.net//forums/discussion/35139
+        // http://live.datatables.net/bunageda/1/edit
+        // http://live.datatables.net/seliwaco/14/edit
+
+        var parent;
+	var network_node_csv_data;
+	var datatable_data_header;
+	var node_csv_ids_to_edge_csv_ids;
+
+        var disable_select_propagation = false;
+        var disable_deselect_propagation = false;
+
+        // this function is called by the creating object in network.html.  It starts all functioning of the page
+        function haveParent(theParent, param_network_node_csv_data, param_datatable_data_header, param_node_csv_ids_to_edge_csv_ids) {
+            parent = theParent;  // this is the network object
+	    network_node_csv_data = param_network_node_csv_data;
+	    datatable_data_header = param_datatable_data_header;
+	    node_csv_ids_to_edge_csv_ids = param_node_csv_ids_to_edge_csv_ids;
+
+            $('#example').DataTable({
+                data: network_node_csv_data,
+                columns: datatable_data_header,
+                //"autWidth": false,
+                select: {
+                    style: 'os'
+                    //style: 'multi+shift'
+                },
+                //scrollY: "200",
+                //"scrollCollapse": true,
+                //deferRender: true,
+                //scroller: true,
+                scrollX: true,
+                "paging": true,
+                reorder: true
+            });
+            //$('#example').removeClass('display')
+            //$('#example').addClass('table table-striped table-bordered');
+            //$('#example').wrap("<div id='scrooll_div'></div>");
+            //$('#scrooll_div').doubleScroll();
+
+            // add row selection
+            // https://datatables.net/reference/event/select
+            // https://datatables.net/reference/api/pluck()
+            // https://datatables.net/reference/event/deselect
+            $('#example').DataTable().on( 'select', function (e, dt, type, indexes) {
+                handle_datatable_select( e, dt, type, indexes );
+            });
+            $('#example').DataTable().on( 'deselect', function(e, dt, type, indexes) {
+                handle_datatable_deselect( e, dt, type, indexes );
+            });
+
+            // add font selection
+            // https://datatables.net//forums/discussion/35139
+            // http://live.datatables.net/bunageda/1/edit
+            // http://live.datatables.net/seliwaco/14/edit
+            $('#font-size-slider').on( 'change', function () {
+                $('#example').css( {
+                    'font-size': this.value+'em',
+                    'line-height': this.value+'em'
+                } );
+            } );
+
+        }
+
+        // This utility function finds the order of the row with node name 'nodeName' in the 
+        // spreadsheet and csv data file.
+        function getRowOrders(nodeName) {
+            // find the index of this unique fasta name in network_node_csv_data
+            var rowIndex = -1; // the current order in the datatable table 
+            var csvIndex = -1; // the current order in the csv input table
+            var shuffleOrder = $('#example').DataTable().rows();
+            for(var i=0; i < network_node_csv_data.length; i++) {
+                if(network_node_csv_data[i][0] == nodeName) {
+                    // console.log("found matching fasta name at i = " + i);
+                    csvIndex = i;
+                    // now find the location of this index in the displayed table
+                    for(var j=0; j < shuffleOrder[0].length; j++) {
+                        if(shuffleOrder[0][j] == i) {
+                            // console.log("found matching index at shuffleOrder index = " + j);
+                            rowIndex = j;
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+            return [rowIndex, csvIndex];
+        }
+        
+        // This utility function finds the order of the row with node name 'nodeName' in the 
+        // spreadsheet and csv data file.  The input is an array of nodeNames.
+        function getRowOrdersArr(nodeNames) {
+            // find the index of this unique fasta name in network_node_csv_data
+            var rowIndexes = [];
+            var csvIndexes = [];
+            var rowIndex; // the current order in the datatable table 
+            var csvIndex; // the current order in the csv input table
+            var shuffleOrder = $('#example').DataTable().rows();
+            for(var i = 0; i < nodeNames.length; i++) {
+                rowIndex = -1;
+                csvIndex = -1;
+                for(var j = 0; j < network_node_csv_data.length; j++) {
+                    if(network_node_csv_data[j][0] == nodeNames[i]) {
+                        csvIndex = j;
+                        // now find the location of this index in the displayed table
+                        for(var k=0; k < shuffleOrder[0].length; k++) {
+                            if(shuffleOrder[0][k] == j) {
+                                // console.log("found matching index at shuffleOrder index = " + k);
+                                rowIndex = k;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+                rowIndexes.push(rowIndex);
+                csvIndexes.push(csvIndex);
+            }
+            return [rowIndexes, csvIndexes];
+        }
+        
+        // this utility function returns an array with the displayed row index and node name of the rows that are currently selected 
+        // row at top is 0, etc.
+        function getSelectedRowIndexesAndNames() {
+            var selectedNodes = [];
+            $('#example').DataTable().rows('.selected').every( function ( rowIdx, tableLoop, rowLoop ) {
+                // tableLoop and rowLoop here are zero
+                var data = this.data();
+                selectedNodes.push(data[0]);
+            });
+        
+            var rowOrdersArr = getRowOrdersArr(selectedNodes);
+            var rowIndexes = rowOrdersArr[0]; // this is the index of the selected node's data in the displayed table
+            var csvIndexes = rowOrdersArr[1]; // this is the index of the selected node's data in the csv table as read from file
+        
+            return [csvIndexes, selectedNodes];
+        }
+        
+        
+        // this utility function moves row from table row order index 'from' to index 'to' with optional highlighting of moved row
+        // using example http://stackoverflow.com/questions/37956860/programmatically-moving-a-row-with-rowreorder
+        function moveSpreadsheetRow(from,to,highlight) {
+            var dt = $('#example').DataTable();
+            var rowToMove = dt.row(from).data();
+            if(to > from) {
+                console.log(" to > from ");
+                // in this case bump contents of rows between from and to down one slot
+                for(var i=(from+1); i<=to; i++) {
+                    var rowData = dt.row(i).data();
+                    dt.row(i-1).data(rowData);
+                    console.log(" inloop" );
+                }
+            } else if (to < from) {
+                console.log(" to < from" );
+                // in this case bump contents of rows between to and from up one slot
+                for(var i=(from-1); i>=to; i--) {
+                    var rowData = dt.row(i).data();
+                    dt.row(i+1).data(rowData);
+                    console.log(" inloop 2" );
+                }
+            } else {
+                // do nothing 
+                return;
+            }
+            dt.row(to).data(rowToMove);
+            // and highlight xxxera
+            dt.rows().invalidate().draw();
+        }
+
+        // This function handles effects on the table from node selects in the network.
+        // It is called from the network or map code.
+        function handle_network_select( event, selects ) {
+            if(event.target.className !== "datagrid") { // since selects are put on the bus from datagrid - don't respond to its own events
+                //console.log('selected network nodes: ' + selects);
+                // process the selected nodes.  We just scroll to the node's row and select the row.
+                for(var i = 0; i < selects.length; i++) {
+                    var scrollNode = selects[i];
+                    // console.log('network node with name: ' + scrollNode + ' selected.');  
+                    var rowOrders = getRowOrders(scrollNode);
+                    var rowIndex = rowOrders[0]; // this is the index of the selected node's data in the displayed table
+                    var csvIndex = rowOrders[1]; // this is the index of the selected node's data in the csv table as read from file
+                    if(rowIndex == -1) {
+                        //console.log(scrollNode + " is not in spreadsheet. No selection of row can occur.");
+                    } else {
+                        // these don't work don't know why $('#example').DataTable().row(rowIndex).to$().addClass('row_selected');
+                        //$('#example').DataTable().row(csvIndex).to$().addClass('row_selected');
+                        //$('#example').DataTable().row(rowIndex).to$().addClass('selected');
+                        //$('#example').DataTable().row(csvIndex).to$().addClass('selected');
+    
+                        // note these two methods use different indexing schemes
+                        disable_select_propagation = true;  // must do this cause cannot figure out how to color selected without throwing event
+                        $('#example').DataTable().row(csvIndex).select(); 
+                        if(selects.length == 1) {
+                            $('#example').DataTable().row(rowIndex).scrollTo(true);
+                        }
+    
+                        // change the csv_order value (by inverting it's value) for sorting the selected rows to the top
+                        var rowToUpdate = $('#example').DataTable().row(csvIndex).data();
+                        // make the value of the csv_order column elements negative for sorting purposes
+                        rowToUpdate[rowToUpdate.length - 1] = -1 * Math.abs(rowToUpdate[rowToUpdate.length - 1]);
+
+                        $('#example').DataTable().row(csvIndex).data(rowToUpdate).draw();
+                    }
+                } 
+                // And now sort on the csv_order column.  This sorts the table and puts all selected rows together
+                // get the number of columns in the table
+                // https://datatables.net//forums/discussion/36552
+                var colLen = $('#example').DataTable().init().columns.length;
+                var n = colLen - 1;  // csv_order is the last column of the table
+                // https://datatables.net/reference/api/order()
+                $('#example').DataTable().order([ n, 'asc']).draw();
+            }
+        }
+
+        // This function handles effects on the table from node deselects in the network.
+        // It is called from the network or map code.
+        function handle_network_deselect( event, deselects ) {
+            if(event.target.className !== "datagrid") { // since selects are put on the bus from datagrid - don't respond to its own events
+
+                //console.log('deselected nodes in deselect event: ' +  deselects);
+                var rowOrdersArr = getRowOrdersArr(deselects);
+                var rowIndexes = rowOrdersArr[0]; // this is the index of the selected node's data in the displayed table
+                var csvIndexes = rowOrdersArr[1]; // this is the index of the selected node's data in the csv table as read from file
+                // get the locs and names of all currently selected nodes in the spreadsheet
+                var selRowsAndNames = getSelectedRowIndexesAndNames();
+                var selIdxs = selRowsAndNames[0]; // this is the csv index for use below in the deselect action
+                var selNames = selRowsAndNames[1];
+                // console.log("currently selected rows in spreadsheet have selIdxs: " + selIdxs + " selNames: " + selNames);
+                // now loop through the deselected rows list (there should only be one of them) and see if any are selected in the spreadsheet
+                for(var i = 0; i < deselects.length; i++) {
+                    // console.log("checking if deselected node: " + deselects[i] + " rowIndex arr: " + rowIndexes[i] + " csvIndex arr: " + csvIndexes[i] + " is in spreadsheet");
+                    var indexMatch2deselect = selNames.indexOf(deselects[i]);
+                    if(indexMatch2deselect != -1) {
+                        //console.log("found matching selected spreadsheet row to unselect with name: " + deselects[i] + " at table index: " + selIdxs[indexMatch2deselect]);
+                        disable_deselect_propagation = true;  // must do this cause cannot figure out how to decolor selected row without throwing event
+                        $('#example').DataTable().row(selIdxs[indexMatch2deselect]).deselect();  // use the csv order
+    
+                        // change the csv_order value for sorting the selected rows to the top
+                        var rowToUpdate = $('#example').DataTable().row(selIdxs[indexMatch2deselect]).data();
+                        // make the value of the csv_order column elements positive
+                        rowToUpdate[rowToUpdate.length - 1] = Math.abs(rowToUpdate[rowToUpdate.length - 1]);
+                        $('#example').DataTable().row(selIdxs[indexMatch2deselect]).data(rowToUpdate).draw();
+                    }
+                }
+            }
+        }
+        
+        // this function handles select clicks on spreadsheet rows
+        // this is called from the datagrid code
+        function handle_datatable_select( e, dt, type, indexes ) {
+            if(!disable_select_propagation) {
+                if(type === 'row') {
+                    //var nodeName = network_node_csv_data[indexes[0]][0]; // network_node_csv_data lives over in the parent even though it is displayed here
+                    //console.log("handle_datatable_select called with node: " + nodeName );
+    
+                    // get a list of the names of all nodes selected in spreadsheet
+                    var selectedNodes = [];
+                    // console.log("indexes in datatables select is: " + indexes); this is unreliable indexes don't alway show all selected rows
+                    // instead use https://datatables.net/reference/api/rows().every()
+                    // http://stackoverflow.com/questions/29191760/jquery-datatables-getting-selected-row-values
+                    $('#example').DataTable().rows('.selected').every( function ( rowIdx, tableLoop, rowLoop ) {
+                        var data = this.data();
+        
+                        // Negate the last element (the csv_order column) for sorting purposes.
+                        // Idea is to have the users click on the csv_index column header to bring all selected nodes together
+                        //console.log("selected Node: " + data[0] + " rowIdx: " + rowIdx + " rowLoop: " + rowLoop);
+                        data[data.length - 1] = -1 * Math.abs(data[data.length - 1]);
+                        //console.log("selected Node: " + data[0] + " rowIdx: " + rowIdx + " rowLoop: " + rowLoop);
+                        $('#example').DataTable().row(this).data(data);
+        
+                        selectedNodes.push(data[0]);
+                    } );
+            
+                    // get a list of currently selected nodes that are in the network (remember user could have selected nodes with a mouse on network display)
+                    // var currentlySelectedNetworkNodes = getSelectedNodes();
+            
+                    //selectNodes(selectedNodes);
+                    // now send the selects to the bus
+                    //datagrid_win.window.className = "datagrid";
+                    //console.log("about to dispatch from datagrid nodes with name: " + selectedNodes);
+                    //EventBus.dispatch('select',datagrid_win.window,selectedNodes);
+                    // only send rows that have been immediately selected (not all selected rows in the table).  Note user could be adding nodes
+                    // via 'shift' select - we don't include the previously selected nodes here.
+                    var newlySelectedNodes = [];
+                    for(var i = 0; i < indexes.length; i++) {
+                        //newlySelectedNodes.push(network_node_csv_data[indexes[i]][0]);
+                        // due to hivtrace renaming, there can be multiple network nodes corresponding to a single csv row name
+                        // the map node_csv_ids_to_ege_csv_ids has the link from one csv name to multiple network names
+                        newlySelectedNodes.push(node_csv_ids_to_edge_csv_ids.get(network_node_csv_data[indexes[i]][0]));
+                    }
+                    parent.window.datagrid_win.window.className = "datagrid";
+                    // console.log("about to dispatch from datagrid nodes with name: " + newlySelectedNodes);
+                    parent.window.EventBus.dispatch('select',parent.window.datagrid_win.window,newlySelectedNodes);
+                }
+            } else {
+                disable_select_propagation = false;
+            }
+        }
+        
+        // this function handles a deselect click on a spreadsheet row (note only a single de-select click is handled)
+        // this is called from the datagrid code
+        function handle_datatable_deselect( e, dt, type, indexes ) {
+            if(!disable_deselect_propagation) {
+                if(type === 'row') {
+                    var nodeNames = [];
+                    for(var i = 0; i < indexes.length; i++) {
+                        // due to hivtrace renaming, there can be multiple network nodes corresponding to a single csv row name
+                        // the map node_csv_ids_to_ege_csv_ids has the link from one csv name to multiple network names
+                        //nodeNames.push(network_node_csv_data[indexes[i]][0]); 
+                        nodeNames.push(node_csv_ids_to_edge_csv_ids.get(network_node_csv_data[indexes[i]][0])); 
+                    }
+                    //console.log("handle_datatable_deselect called with nodes: " + nodeNames );
+        
+                    // negate (make positive) the csv_order element
+                    // negate the last element (the csv_order column) for sorting purposes
+                    for(var i = 0; i < indexes.length; i++) {
+                        var deselRow = $('#example').DataTable().row(indexes[i]).data();
+                        deselRow[deselRow.length - 1] = Math.abs(deselRow[deselRow.length - 1]);
+                        $('#example').DataTable().row(indexes[i]).data(deselRow);
+                    }
+            
+                    /* get a list of the names of all nodes selected in spreadsheet
+                    var selectedNodes = [];
+                    // http://stackoverflow.com/questions/29191760/jquery-datatables-getting-selected-row-values
+                    $('#example').DataTable().rows('.selected').every( function ( rowIdx, tableLoop, rowLoop ) {
+                        var data = this.data();
+                        selectedNodes.push(data[0]);
+                    }); */
+            
+                    parent.window.datagrid_win.window.className = "datagrid";
+                    parent.window.EventBus.dispatch('deselect',parent.window.datagrid_win.window,nodeNames);
+                }
+            } else {
+                disable_deselect_propagation = false;
+            }
+        }
+        
+        // deselect all selected spreadsheet rows (not presently used)
+        function deselectAllSpreadsheetSelects() {
+            $('#example tbody tr').removeClass('selected');
+        }
+
+    </script>
+
+  </body>
+</html>

@@ -1,0 +1,124 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
+    <title>Netview HIV Histogram</title>
+
+    <meta name="description" content="">
+    <meta name="author" content="ERA">
+    <link rel="icon" href="icons/image16.png">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+        <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <script src="node_modules/plotly.js/dist/plotly.min.js"></script>
+</head>
+
+<body>
+
+    <div id="myDiv" style="width:100%;height:100%;"></div>
+
+    <script>
+
+        var parent;
+	var myNodes;
+	var myEdges;
+        function haveParent(theParent, param_myNodes, param_myEdges){
+            parent = theParent;
+	    myNodes = param_myNodes;
+	    myEdges = param_myEdges;
+            //theParent.window.changeparentmethod();
+            //console.log("inside haveParent in histo");
+            initLookupMap();
+            // create an empty histogram
+            handle_network_select( [] );
+        }
+
+        // This function takes as input myEdges which is a list of the following JSON objects:
+        // {"id":id3,"from":from,"to":to,"length":lengthValue}
+        // The function creates a quick lookup map for 'to'-'from' to lengthValue.  Since reversing 'to' and 'from' will not
+        // change the value of lengthvalue, we create the lookup key with 'to' lexigraphically less than 'from' always, and access
+        // the map in this way as well.
+        var map_to_from_length = new Map();
+        function initLookupMap() {
+            var to, from;
+            for(var i=0; i<myEdges.length; i++) {
+                to = myEdges[i].to;
+                from = myEdges[i].from;
+                if(to < from) { 
+                    map_to_from_length.set(to + '-' + from, myEdges[i].length);
+                } else {
+                    map_to_from_length.set(from + '-' + to, myEdges[i].length);
+                }
+            }
+        }
+
+        // this function creates a list of lengthValues based on the selected nodes as acquired from 
+        function getLengthsFromSelectedNetworkNodes( selectedNodes ) {
+            var x = [];
+            var first, second, lengthValue;
+            for(var i = 0; i < selectedNodes.length; i++) {
+                first = selectedNodes[i];
+                for(var j = i + 1; j < selectedNodes.length; j++) {
+                    second = selectedNodes[j];
+                    if(first < second) {
+                        lengthValue = map_to_from_length.get(first + '-' + second);
+                    } else {
+                        lengthValue = map_to_from_length.get(second + '-' + first);
+                    }
+                    if(lengthValue !== undefined) {
+                        x.push(lengthValue);
+                    }
+                }
+            }
+            return x;
+        }
+
+        // debug
+        //for (var i = 0; i < 500; i ++) {
+        //    x[i] = Math.random();
+        //}
+
+        // this function creates a histogram after a node selection event in the network display
+        function handle_network_select( event, selects ) {
+
+            // the parameter selects is not used - the histogram is always done on the nodes selected 
+            // on the network diagram
+            var selectedNodes = parent.window.network.getSelectedNodes();
+            x = getLengthsFromSelectedNetworkNodes( selectedNodes );
+    
+            var data = [
+                {
+                    x: x,
+                    type: 'histogram'
+                }
+            ];
+    
+            layout = {
+                title: 'Pairwise Genetic Distance Histogram',  
+                yaxis: {
+                    title: 'Frequency'
+                },
+                xaxis: {
+                    title: 'Tamura-Nei (TN93) Genetic Distance (%)'
+                },
+                margin: {t: 120}
+            };
+    
+            Plotly.newPlot('myDiv', data, layout);
+        }
+
+        function handle_network_deselect( event, deselects ) {
+            handle_network_select( event, deselects );
+        }
+    
+    </script>
+
+</body>
+</html>

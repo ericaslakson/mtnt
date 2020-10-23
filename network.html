@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
+    <title>Netview HIV</title>
+
+    <meta name="description" content="">
+    <meta name="author" content="ERA">
+    <link rel="icon" href="icons/image16.ico">
+
+    <!-- Vendor: Bootstrap Stylesheets http://getbootstrap.com -->
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
+
+    <link href="node_modules/bootstrap-fileinput/css/fileinput.css" media="all" rel="stylesheet" type="text/css" />
+    <link href="bower_components/bootstrap3-dialog/dist/css/bootstrap-dialog.min.css" rel="stylesheet" type="text/css" />
+    <link href="./bootstrap-colorselector-master/lib/bootstrap-colorselector-0.2.0/css/bootstrap-colorselector.css" rel="stylesheet">
+    <link href="node_modules/bootstrap-slider/css/bootstrap-slider.css" rel="stylesheet" />
+    <link href="node_modules/vis/dist/vis.css" rel="stylesheet" type="text/css" />
+    <link href="datatables/datatables.min.css" rel="stylesheet" type="text/css" />
+
+    <!-- Documentation extras for jasny-bootstrap sliding window -->
+    <link href="node_modules/jasny-bootstrap/dist/css/jasny-bootstrap.min.css" rel="stylesheet" type="text/css" />
+    <link href="css/docs.css" rel="stylesheet" type="text/css" />
+    <link href="css/navmenu-reveal.css" rel="stylesheet" type="text/css" />
+
+    <!-- colors inside the accordian menu -->
+    <link href="./bootstrap-colorselector-master/lib/bootstrap-colorselector-0.2.0/css/bootstrap-colorselector.css" rel="stylesheet">
+
+    <!-- Netview HIV CSS Styles -->
+    <link href="css/main.css" rel="stylesheet" type="text/css" />
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+
+    <div class="bs-example bs-navmenu-offcanvas-example">
+        <div id="myNavmenuCanvas">
+            <nav id="myNavmenu" class="navmenu navmenu-default navmenu-fixed-left offcanvas" role="navigation">
+                <div id="MainMenu">
+                    <div class="list-group panel">
+                        <!-- the node config menu -->                                
+                        <a href="#cn" class="list-group-item list-group-item-success strong" data-toggle="collapse" data-parent="#MainMenu">Configure Nodes<i class="fa fa-caret-down"></i></a>
+                        <div class="collapse" id="cn">
+                            <!-- the label submenu -->
+                            <a href="#cnLaSubMenu" class="list-group-item strong" data-toggle="collapse" data-parent="#cnLaSubMenu">
+                                <div class="input-group">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-primary" type="button">Label</button>
+                                    </span>
+                                    <input type="text" id="labelbox" class="form-control" readonly value="">
+                                </div>
+                            </a>
+                            <div class="collapse list-group-submenu" id="cnLaSubMenu">
+                            </div>
+                            <!-- the node size submenu -->
+                            <a href="#cnSiSubMenu" class="list-group-item strong" data-toggle="collapse" data-parent="#cnSiSubMenu">
+                                <div class="input-group">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-primary" type="button">Size</button>
+                                    </span>
+                                    <input type="text" id="sizebox" class="form-control" readonly value="">
+                                </div>
+                            </a>
+                            <div class="collapse list-group-submenu" id="cnSiSubMenu">
+                            </div>
+                            <!-- the node color submenu -->
+                            <a href="#cnCoSubMenu" class="list-group-item strong" data-toggle="collapse" data-parent="#cnCoSubMenu">
+                                <div class="input-group">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-primary" type="button">Color</button>
+                                    </span>
+                                    <input type="text" id="colorbox" class="form-control" readonly value="">
+                                </div>
+                            </a>
+                            <div class="collapse list-group-submenu" id="cnCoSubMenu">
+                            </div>
+                            <!-- the node shape submenu -->
+                            <a href="#cnShSubMenu" class="list-group-item strong" data-toggle="collapse" data-parent="#cnShSubMenu">
+                                <div class="input-group">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-primary" type="button">Shape</button>
+                                    </span>
+                                    <input type="text" id="shapebox" class="form-control" readonly value="">
+                                </div>
+                            </a>
+                            <div class="collapse list-group-submenu" id="cnShSubMenu">
+                            </div>
+                            <!-- the node opacity submenu -->
+                            <a href="#cnOpSubMenu" class="list-group-item strong" data-toggle="collapse" data-parent="#cnOpSubMenu">
+                                <div class="input-group">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-primary" type="button">Opacity</button>
+                                    </span>
+                                    <input type="text" id="opacitybox" class="form-control" readonly value="">
+                                </div>
+                            </a>
+                            <div class="collapse list-group-submenu" id="cnOpSubMenu">
+                            </div>
+                            <!-- the node tooltip submenu -->                                
+                            <a href="#cnTtSubMenu" class="list-group-item strong" data-toggle="collapse" data-parent="#cnTtSubMenu">
+                                <div class="input-group">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-primary" type="button">Tooltip</button>
+                                    </span>
+                                    <input type="text" id="tooltipbox" class="form-control" readonly value="">
+                                </div>
+                            </a>
+                            <div class="collapse list-group-submenu" id="cnTtSubMenu">
+                            </div>
+                        </div>
+                        <!-- the edge config menu -->                                
+                        <a href="#ce" class="list-group-item list-group-item-success strong" data-toggle="collapse" data-parent="#MainMenu">Configure Edges<i class="fa fa-caret-down"></i></a>
+                        <div class="collapse" id="ce">
+                            <!-- the edge width submenu -->                                
+                            <a href="#ceWiSubMenu" class="list-group-item strong" data-toggle="collapse" data-parent="#ceWiSubMenu">
+                                <div class="input-group">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-primary" type="button">Width</button>
+                                    </span>
+                                    <input type="text" id="widthbox" class="form-control" readonly value="">
+                                </div>
+                            </a>
+                            <div class="collapse list-group-submenu" id="ceWiSubMenu">
+                            </div>
+                            <!-- the edge color submenu -->
+                            <a href="#ceCoSubMenu" class="list-group-item strong" data-toggle="collapse" data-parent="#ceCoSubMenu">
+                                <div class="input-group">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-primary" type="button">Color</button>
+                                    </span>
+                                    <input type="text" id="edgecolorbox" class="form-control" readonly value="">
+                                </div>
+                            </a>
+                            <div class="collapse list-group-submenu" id="ceCoSubMenu">
+                            </div>
+                            <!-- the edge dash submenu -->                                
+                            <a href="#ceDaSubMenu" class="list-group-item strong" data-toggle="collapse" data-parent="#ceDaSubMenu">
+                                <div class="input-group">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-primary" type="button">Dash</button>
+                                    </span>
+                                    <input type="text" id="dashtypebox" class="form-control" readonly value="">
+                                </div>
+                            </a>
+                            <div class="collapse list-group-submenu" id="ceDaSubMenu">
+                            </div>
+                            <!-- the edge opacity submenu -->                                
+                            <a href="#ceOpSubMenu" class="list-group-item strong" data-toggle="collapse" data-parent="#ceOpSubMenu">
+                                <div class="input-group">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-primary" type="button">Opacity</button>
+                                    </span>
+                                    <input type="text" id="edgeopacitybox" class="form-control" readonly value="">
+                                </div>
+                            </a>
+                            <div class="collapse list-group-submenu" id="ceOpSubMenu">
+                            </div>
+                            <!-- the edge tooltip submenu -->                                
+                            <a href="#ceTtSubMenu" class="list-group-item strong" data-toggle="collapse" data-parent="#ceTtSubMenu">
+                                <div class="input-group">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-primary" type="button">Tooltip</button>
+                                    </span>
+                                    <input type="text" id="edgetooltipbox" class="form-control" readonly value="">
+                                </div>
+                            </a>
+                            <div class="collapse list-group-submenu" id="ceTtSubMenu">
+                            </div>
+                        </div>
+                        <!-- the threshold menu -->
+                        <a href="#ct" class="list-group-item list-group-item-success strong" data-toggle="collapse" data-parent="#MainMenu">Configure Threshold<i class="fa fa-caret-down"></i></a>
+                        <div class="collapse" id="ct">
+                            <div class="well col-md-2">
+                            <input id="ex4" data-slider-id='ex4Slider' type="text" data-slider-min="0.001" data-slider-max="0.015" data-slider-step="0.001" data-slider-value="0.015" data-slider-handle="triangle" />
+                            </div>
+                        </div>
+    
+                        <!-- the size scaling menu -->
+                        <a href="#st" class="list-group-item list-group-item-success strong" data-toggle="collapse" data-parent="#MainMenu">Configure Size Scaler<i class="fa fa-caret-down"></i></a>
+                        <div class="collapse" id="st">
+                            <div class="well col-md-2">
+                            <input id="ex5" data-slider-id='ex5Slider' type="text" data-slider-min="0.1" data-slider-max="3.0" data-slider-step="0.1" data-slider-value="1.000" data-slider-handle="triangle" />
+                            </div>
+                        </div>
+                        <!-- the histogram display checkbox -->
+                        <a href="#" class="list-group-item list-group-item-success strong" data-parent="#MainMenu" data-value="histo"><input type="checkbox" onclick="handleHisto(this)" name="histocb" />&nbsp;View Histogram</a>
+                        <!-- the map display checkbox -->
+                        <a href="#" class="list-group-item list-group-item-success strong" data-parent="#MainMenu" data-value="map"><input type="checkbox" onclick="handleMap(this)" name="mapcb" />&nbsp;View Map</a>
+                        <!-- the csv display checkbox -->
+                        <a href="#" class="list-group-item list-group-item-success strong" data-parent="#MainMenu" data-value="map"><input type="checkbox" onclick="handleDatagrid(this)" name="datagridcb" />&nbsp;View Node File</a>
+                    </div>
+                </div>
+            </nav>
+            <div id="toptitle" class="navbar navbar-default navbar-fixed-top">
+                <button type="button" class="navbar-toggle" data-toggle="offcanvas" data-target="#myNavmenu" data-canvas="#myNavmenuCanvas" data-placement="left">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <h3 style="text-align: center;">NetView HIV Network</h3>
+            </div>
+        </div>
+        <div id="wrapper">
+            <div id="mynetwork"></div>
+            <div id="loadingBar">
+                <div class="lbouterBorder">
+                    <div id="lbtext">0%</div>
+                    <div id="lbborder">
+                        <div id="lbbar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vendor: Javascripts -->
+    <script src="node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+
+    <!-- file input and preview control -->
+    <script src="node_modules/bootstrap-fileinput/js/fileinput.js" type="text/javascript"></script>
+
+    <!-- error dialogs -->
+    <script src="bower_components/bootstrap3-dialog/dist/js/bootstrap-dialog.min.js"></script>
+
+    <!-- edge object layout control -->
+    <script type="text/javascript" src="node_modules/vis/dist/vis.js"></script>
+
+    <!-- datatables -->
+    <script type="text/javascript" src="datatables/datatables.min.js"></script>
+
+    <!-- sliding window -->
+    <script type='text/javascript' src="node_modules/jasny-bootstrap/js/offcanvas.js"></script>
+
+    <!-- jquery_ui_bootstrap - this needed for jquery-doubleScroll -->
+    <script type='text/javascript' src="jquery-ui-bootstrap/jquery-ui-1.9.2.custom.min.js"></script>
+
+    <!-- double scroll -->
+    <script type='text/javascript' src="jQuery-doubleScroll-master/jquery.doubleScroll.js"></script>
+
+    <!-- the threshold value slider on the edge object network config panel -->
+    <!-- note must come after the jquery-ui-bootstrap inclusion or fail -->
+    <script type='text/javascript' src="node_modules/bootstrap-slider/js/bootstrap-slider.js"></script>
+      
+    <!-- the color selectors inside the accordian menu -->
+    <script src="./bootstrap-colorselector-master/lib/bootstrap-colorselector-0.2.0/js/bootstrap-colorselector.js"></script>
+
+    <!-- the eventbus for communicating node select events between multidoc windows -->
+    <script type="text/javascript" language="javascript" src="node_modules/eventbusjs/lib/eventbus.min.js"></script>
+
+    <!-- Our Website Javascripts -->
+    <script src="js/network.js"></script>
+
+  </body>
+</html>
